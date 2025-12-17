@@ -6,14 +6,7 @@ import NavBar from "../../components/NavBar";
 import { ProtectedRoute } from "../../components/ProtectedRoute";
 import { useAuth, useAsyncOperation } from "../../hooks";
 import { donutService, groupService } from "../../services";
-
-function formatDate(iso) {
-  try {
-    return new Date(iso).toLocaleString("he-IL", { dateStyle: "medium", timeStyle: "short" });
-  } catch {
-    return iso;
-  }
-}
+import { DateFormatter } from "../../utils";
 
 export default function FeedPage() {
   const router = useRouter();
@@ -139,7 +132,7 @@ export default function FeedPage() {
                     <span className="badge">{e.visibility === "group" ? "משותף" : "פרטי"}</span>
                     <span className="badge">⭐ {e.rating}/10</span>
                   </div>
-                  <div className="small">{formatDate(e.date)}</div>
+                  <div className="small">{DateFormatter.toMediumDateTime(e.date)}</div>
                   <div style={{ marginTop: 6, fontWeight: 700 }}>{e.donut_name}{e.filling ? ` · ${e.filling}` : ""}</div>
                   {e.price != null && <div className="small">מחיר: ₪{e.price}</div>}
                   {e.notes && <div style={{ marginTop: 8 }}>{e.notes}</div>}

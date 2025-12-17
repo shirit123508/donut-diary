@@ -1,3 +1,5 @@
+import { ErrorHandler, ValidationHelper, createErrorFromSupabase } from "../utils";
+
 /**
  * DonutService - Service layer for donut entries operations
  * Encapsulates all business logic related to donut entries
@@ -32,7 +34,11 @@ export class DonutService {
     }
 
     const { data, error } = await query;
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "getEntries", userId, type, groupId });
+      throw appError;
+    }
     return data || [];
   }
 
@@ -47,7 +53,11 @@ export class DonutService {
       .delete()
       .eq("id", id);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "deleteEntry", id });
+      throw appError;
+    }
   }
 
   /**
@@ -56,13 +66,26 @@ export class DonutService {
    * @returns {Promise<Object>} Created entry
    */
   async createEntry(entry) {
+    // Validate entry
+    const validation = ValidationHelper.validateDonutEntry(entry);
+    if (!validation.valid) {
+      const firstError = Object.values(validation.errors)[0];
+      const validationError = new ValidationError(firstError);
+      ErrorHandler.log(validationError, { method: "createEntry", entry });
+      throw validationError;
+    }
+
     const { data, error } = await this.client
       .from("donut_entries")
       .insert(entry)
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "createEntry", entry });
+      throw appError;
+    }
     return data;
   }
 
@@ -73,6 +96,23 @@ export class DonutService {
    * @returns {Promise<Object>} Updated entry
    */
   async updateEntry(id, updates) {
+    // Validate updates if they contain critical fields
+    if (updates.place_name || updates.donut_name || updates.rating) {
+      const validation = ValidationHelper.validateDonutEntry({
+        place_name: updates.place_name || "placeholder",
+        donut_name: updates.donut_name || "placeholder",
+        rating: updates.rating || 5,
+        ...updates,
+      });
+
+      if (!validation.valid) {
+        const firstError = Object.values(validation.errors)[0];
+        const validationError = new ValidationError(firstError);
+        ErrorHandler.log(validationError, { method: "updateEntry", id, updates });
+        throw validationError;
+      }
+    }
+
     const { data, error } = await this.client
       .from("donut_entries")
       .update(updates)
@@ -80,7 +120,11 @@ export class DonutService {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "updateEntry", id, updates });
+      throw appError;
+    }
     return data;
   }
 
@@ -96,7 +140,11 @@ export class DonutService {
       .eq("id", id)
       .maybeSingle();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "getEntryById", id });
+      throw appError;
+    }
     return data;
   }
 }

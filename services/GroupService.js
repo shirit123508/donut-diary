@@ -1,4 +1,5 @@
 import { makeJoinCode } from "../lib/joinCode";
+import { ErrorHandler, ValidationHelper, NotFoundError, createErrorFromSupabase } from "../utils";
 
 /**
  * GroupService - Service layer for family group operations
@@ -22,7 +23,11 @@ export class GroupService {
       .select("group_id, groups:groups(id,name,join_code,created_by)")
       .eq("user_id", userId);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "getUserGroups", userId });
+      throw appError;
+    }
     return (data || []).map((row) => row.groups).filter(Boolean);
   }
 
@@ -33,6 +38,9 @@ export class GroupService {
    * @returns {Promise<Object>} Created group
    */
   async createGroup(name, userId) {
+    // Validate group name
+    ValidationHelper.isValidGroupName(name, true);
+
     // Generate unique join code with retry logic
     let code = makeJoinCode();
     for (let i = 0; i < 5; i++) {
@@ -53,14 +61,22 @@ export class GroupService {
       .select()
       .single();
 
-    if (groupError) throw new Error(groupError.message);
+    if (groupError) {
+      const appError = createErrorFromSupabase(groupError);
+      ErrorHandler.log(appError, { method: "createGroup", name, userId });
+      throw appError;
+    }
 
     // Add creator as admin
     const { error: memberError } = await this.client
       .from("group_members")
       .insert({ group_id: group.id, user_id: userId, role: "admin" });
 
-    if (memberError) throw new Error(memberError.message);
+    if (memberError) {
+      const appError = createErrorFromSupabase(memberError);
+      ErrorHandler.log(appError, { method: "createGroup:addMember", groupId: group.id, userId });
+      throw appError;
+    }
 
     return group;
   }
@@ -72,6 +88,9 @@ export class GroupService {
    * @returns {Promise<Object>} Joined group
    */
   async joinGroup(joinCode, userId) {
+    // Validate join code format
+    ValidationHelper.isValidJoinCode(joinCode, true);
+
     // Find group by join code
     const { data: group, error: findError } = await this.client
       .from("groups")
@@ -79,8 +98,17 @@ export class GroupService {
       .eq("join_code", joinCode.trim().toUpperCase())
       .maybeSingle();
 
-    if (findError) throw new Error(findError.message);
-    if (!group) throw new Error("קוד לא נמצא. בדקי שהקלדת נכון.");
+    if (findError) {
+      const appError = createErrorFromSupabase(findError);
+      ErrorHandler.log(appError, { method: "joinGroup:find", joinCode });
+      throw appError;
+    }
+
+    if (!group) {
+      const notFoundError = new NotFoundError("קוד ההצטרפות");
+      ErrorHandler.log(notFoundError, { method: "joinGroup", joinCode });
+      throw notFoundError;
+    }
 
     // Add user to group
     const { error: insertError } = await this.client
@@ -88,11 +116,15 @@ export class GroupService {
       .insert({ group_id: group.id, user_id: userId, role: "member" });
 
     if (insertError) {
-      // Check if already a member
+      // Check if already a member (duplicate key error)
       if (insertError.code === "23505") {
-        throw new Error("את כבר חברה במשפחה הזו");
+        const duplicateError = new ValidationError("את כבר חברה במשפחה הזו");
+        ErrorHandler.log(duplicateError, { method: "joinGroup:duplicate", groupId: group.id, userId });
+        throw duplicateError;
       }
-      throw new Error(insertError.message);
+      const appError = createErrorFromSupabase(insertError);
+      ErrorHandler.log(appError, { method: "joinGroup:insert", groupId: group.id, userId });
+      throw appError;
     }
 
     return group;
@@ -111,7 +143,11 @@ export class GroupService {
       .eq("group_id", groupId)
       .eq("user_id", userId);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "leaveGroup", groupId, userId });
+      throw appError;
+    }
   }
 
   /**
@@ -126,7 +162,11 @@ export class GroupService {
       .eq("id", groupId)
       .maybeSingle();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "getGroupById", groupId });
+      throw appError;
+    }
     return data;
   }
 
@@ -144,7 +184,11 @@ export class GroupService {
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "isMember", groupId, userId });
+      throw appError;
+    }
     return !!data;
   }
 }

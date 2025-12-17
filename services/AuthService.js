@@ -1,3 +1,5 @@
+import { ErrorHandler, ValidationHelper, AuthenticationError, createErrorFromSupabase } from "../utils";
+
 /**
  * AuthService - Service layer for authentication operations
  * Encapsulates all business logic related to user authentication
@@ -16,12 +18,20 @@ export class AuthService {
    * @returns {Promise<Object>} Session data
    */
   async signIn(email, password) {
+    // Validate inputs
+    ValidationHelper.isValidEmail(email, true);
+    ValidationHelper.isValidPassword(password, true);
+
     const { data, error } = await this.client.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const authError = new AuthenticationError(error.message, error);
+      ErrorHandler.log(authError, { method: "signIn", email });
+      throw authError;
+    }
     return data;
   }
 
@@ -32,12 +42,20 @@ export class AuthService {
    * @returns {Promise<Object>} Session data
    */
   async signUp(email, password) {
+    // Validate inputs
+    ValidationHelper.isValidEmail(email, true);
+    ValidationHelper.isValidPassword(password, true);
+
     const { data, error } = await this.client.auth.signUp({
       email,
       password,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const authError = new AuthenticationError(error.message, error);
+      ErrorHandler.log(authError, { method: "signUp", email });
+      throw authError;
+    }
     return data;
   }
 
@@ -47,7 +65,11 @@ export class AuthService {
    */
   async signOut() {
     const { error } = await this.client.auth.signOut();
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "signOut" });
+      throw appError;
+    }
   }
 
   /**
@@ -56,7 +78,11 @@ export class AuthService {
    */
   async getSession() {
     const { data, error } = await this.client.auth.getSession();
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "getSession" });
+      throw appError;
+    }
     return data.session;
   }
 
@@ -66,7 +92,11 @@ export class AuthService {
    */
   async getCurrentUser() {
     const { data, error } = await this.client.auth.getUser();
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "getCurrentUser" });
+      throw appError;
+    }
     return data.user;
   }
 
@@ -86,8 +116,15 @@ export class AuthService {
    * @returns {Promise<void>}
    */
   async resetPassword(email) {
+    // Validate email
+    ValidationHelper.isValidEmail(email, true);
+
     const { error } = await this.client.auth.resetPasswordForEmail(email);
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "resetPassword", email });
+      throw appError;
+    }
   }
 
   /**
@@ -96,11 +133,18 @@ export class AuthService {
    * @returns {Promise<Object>} Updated user
    */
   async updatePassword(newPassword) {
+    // Validate password
+    ValidationHelper.isValidPassword(newPassword, true);
+
     const { data, error } = await this.client.auth.updateUser({
       password: newPassword,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      const appError = createErrorFromSupabase(error);
+      ErrorHandler.log(appError, { method: "updatePassword" });
+      throw appError;
+    }
     return data.user;
   }
 }
