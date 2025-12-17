@@ -3,29 +3,27 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "../../components/NavBar";
-import { supabase } from "../../lib/supabaseClient";
-import { useSession } from "../../lib/useSession";
+import { useAuth, useAsyncOperation } from "../../hooks";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { session, loading } = useSession();
+  const { requireGuest, signup } = useAuth();
+  const { busy, error, execute } = useAsyncOperation();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && session) router.replace("/feed");
-  }, [loading, session, router]);
+    requireGuest();
+  }, [requireGuest]);
 
   async function onSubmit(e) {
     e.preventDefault();
-    setErr("");
-    setBusy(true);
-    const { error } = await supabase.auth.signUp({ email, password });
-    setBusy(false);
-    if (error) setErr(error.message);
-    else router.push("/feed");
+
+    await execute(async () => {
+      await signup(email, password);
+      router.push("/feed");
+    });
   }
 
   return (
@@ -51,8 +49,8 @@ export default function SignupPage() {
           </div>
         </form>
 
-        {err && <div className="hr" />}
-        {err && <div className="small" style={{ color: "var(--danger)" }}>{err}</div>}
+        {error && <div className="hr" />}
+        {error && <div className="small" style={{ color: "var(--danger)" }}>{error}</div>}
       </div>
     </div>
   );

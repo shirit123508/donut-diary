@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "../../components/NavBar";
-import { useSession } from "../../lib/useSession";
-import { supabase } from "../../lib/supabaseClient";
+import { ProtectedRoute } from "../../components/ProtectedRoute";
+import { useAuth, useAsyncOperation } from "../../hooks";
+import { donutService, groupService } from "../../services";
 
 function formatDate(iso) {
   try {
@@ -16,33 +17,24 @@ function formatDate(iso) {
 
 export default function FeedPage() {
   const router = useRouter();
-  const { session, loading } = useSession();
-  const userId = session?.user?.id;
+  const { userId } = useAuth();
+  const { busy, error, execute, setErrorMessage } = useAsyncOperation();
 
   const [tab, setTab] = useState("family"); // family | mine
   const [entries, setEntries] = useState([]);
   const [groups, setGroups] = useState([]);
   const [activeGroupId, setActiveGroupId] = useState(null);
 
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-
-  useEffect(() => {
-    if (!loading && !session) router.replace("/login");
-  }, [loading, session, router]);
-
   useEffect(() => {
     async function loadGroups() {
       if (!userId) return;
-      const { data, error } = await supabase
-        .from("group_members")
-        .select("group_id, groups:groups(id,name)")
-        .eq("user_id", userId);
-
-      if (!error) {
-        const g = (data || []).map((r) => r.groups).filter(Boolean);
+      try {
+        const data = await groupService.getUserGroups(userId);
+        const g = data.map((group) => ({ id: group.id, name: group.name }));
         setGroups(g);
         if (g.length && !activeGroupId) setActiveGroupId(g[0].id);
+      } catch (err) {
+        console.error("Failed to load groups:", err);
       }
     }
     loadGroups();
@@ -50,32 +42,23 @@ export default function FeedPage() {
   }, [userId]);
 
   async function loadEntries() {
-    setErr("");
-    setBusy(true);
+    if (!userId) return;
 
-    let query = supabase
-      .from("donut_entries")
-      .select("*")
-      .order("date", { ascending: false })
-      .limit(200);
-
-    if (tab === "mine") {
-      query = query.eq("created_by", userId);
-    } else {
-      // family tab: show only group entries for the active group
-      if (!activeGroupId) {
-        setEntries([]);
-        setBusy(false);
-        return;
-      }
-      query = query.eq("visibility", "group").eq("group_id", activeGroupId);
+    // Skip loading if on family tab with no active group
+    if (tab === "group" && !activeGroupId) {
+      setEntries([]);
+      return;
     }
 
-    const { data, error } = await query;
-    setBusy(false);
-
-    if (error) setErr(error.message);
-    else setEntries(data || []);
+    await execute(async () => {
+      const data = await donutService.getEntries({
+        userId,
+        type: tab,
+        groupId: activeGroupId,
+        limit: 200,
+      });
+      setEntries(data);
+    });
   }
 
   useEffect(() => {
@@ -88,53 +71,56 @@ export default function FeedPage() {
 
   async function removeEntry(id) {
     if (!confirm("למחוק את הרשומה?")) return;
-    const { error } = await supabase.from("donut_entries").delete().eq("id", id);
-    if (error) setErr(error.message);
-    else loadEntries();
+
+    await execute(async () => {
+      await donutService.deleteEntry(id);
+      await loadEntries();
+    });
   }
 
   return (
-    <div className="container">
-      <NavBar />
+    <ProtectedRoute>
+      <div className="container">
+        <NavBar />
 
-      <div className="card" style={{ marginTop: 14 }}>
-        <div className="row" style={{ alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <h1 className="h1" style={{ marginBottom: 4 }}>פיד</h1>
-            <div className="small">בוחרים בין משפחתי לאישי.</div>
+        <div className="card" style={{ marginTop: 14 }}>
+          <div className="row" style={{ alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <h1 className="h1" style={{ marginBottom: 4 }}>פיד</h1>
+              <div className="small">בוחרים בין משפחתי לאישי.</div>
+            </div>
+
+            <button className="btn" type="button" onClick={() => router.push("/add")}>+ הוספה</button>
           </div>
 
-          <button className="btn" type="button" onClick={() => router.push("/add")}>+ הוספה</button>
-        </div>
+          <div className="hr" />
 
-        <div className="hr" />
+          <div className="row" style={{ alignItems: "center", justifyContent: "space-between" }}>
+            <div className="row">
+              <button className={tab === "family" ? "btn" : "btnSecondary"} type="button" onClick={() => setTab("family")}>
+                משפחה
+              </button>
+              <button className={tab === "mine" ? "btn" : "btnSecondary"} type="button" onClick={() => setTab("mine")}>
+                שלי
+              </button>
+            </div>
 
-        <div className="row" style={{ alignItems: "center", justifyContent: "space-between" }}>
-          <div className="row">
-            <button className={tab === "family" ? "btn" : "btnSecondary"} type="button" onClick={() => setTab("family")}>
-              משפחה
-            </button>
-            <button className={tab === "mine" ? "btn" : "btnSecondary"} type="button" onClick={() => setTab("mine")}>
-              שלי
-            </button>
+            {tab === "family" && (
+              hasFamily ? (
+                <select className="select" style={{ maxWidth: 260 }} value={activeGroupId || ""} onChange={(e) => setActiveGroupId(e.target.value)}>
+                  {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+              ) : (
+                <button className="btnSecondary" type="button" onClick={() => router.push("/family")}>אין משפחה — יצירה/הצטרפות</button>
+              )
+            )}
           </div>
 
-          {tab === "family" && (
-            hasFamily ? (
-              <select className="select" style={{ maxWidth: 260 }} value={activeGroupId || ""} onChange={(e) => setActiveGroupId(e.target.value)}>
-                {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
-            ) : (
-              <button className="btnSecondary" type="button" onClick={() => router.push("/family")}>אין משפחה — יצירה/הצטרפות</button>
-            )
-          )}
-        </div>
+          {busy && <div className="hr" />}
+          {busy && <div className="small">טוען…</div>}
 
-        {busy && <div className="hr" />}
-        {busy && <div className="small">טוען…</div>}
-
-        {err && <div className="hr" />}
-        {err && <div className="small" style={{ color: "var(--danger)" }}>{err}</div>}
+          {error && <div className="hr" />}
+          {error && <div className="small" style={{ color: "var(--danger)" }}>{error}</div>}
 
         {!busy && !entries.length && (
           <>
@@ -166,7 +152,8 @@ export default function FeedPage() {
             </div>
           ))}
         </div>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import ThemeSwitcher from "./ThemeSwitcher";
-import { supabase } from "../lib/supabaseClient";
-import { useSession } from "../lib/useSession";
+import { useAuth } from "../hooks";
 
 export default function NavBar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { session } = useSession();
+  const { session, logout } = useAuth();
 
   const linkStyle = (href) => ({
     padding: "8px 12px",
@@ -18,11 +16,6 @@ export default function NavBar() {
     background: pathname === href ? "var(--card)" : "transparent",
     fontWeight: 600,
   });
-
-  async function logout() {
-    await supabase.auth.signOut();
-    router.push("/login");
-  }
 
   return (
     <div className="card" style={{ position: "sticky", top: 0, zIndex: 10, backdropFilter: "blur(6px)" }}>
