@@ -11,7 +11,7 @@ import { DateFormatter } from "../../utils";
 export default function FeedPage() {
   const router = useRouter();
   const { userId } = useAuth();
-  const { busy, error, execute, setErrorMessage } = useAsyncOperation();
+  const { busy, error, execute } = useAsyncOperation();
 
   const [tab, setTab] = useState("family"); // family | mine
   const [entries, setEntries] = useState([]);
@@ -38,7 +38,7 @@ export default function FeedPage() {
     if (!userId) return;
 
     // Skip loading if on family tab with no active group
-    if (tab === "group" && !activeGroupId) {
+    if (tab === "family" && !activeGroupId) {
       setEntries([]);
       return;
     }
