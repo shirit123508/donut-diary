@@ -18,15 +18,47 @@ export default function NavBar() {
   });
 
   return (
-    <div className="card" style={{ position: "sticky", top: 0, zIndex: 10, backdropFilter: "blur(6px)" }}>
-      <div className="row" style={{ alignItems: "center", justifyContent: "space-between" }}>
-        <div className="row" style={{ alignItems: "center" }}>
-          <div style={{ fontWeight: 800 }}>🍩 יומן סופגניות</div>
+    <nav
+      className="card"
+      style={{ position: "sticky", top: 0, zIndex: 10, backdropFilter: "blur(6px)" }}
+      role="navigation"
+      aria-label="ניווט ראשי"
+    >
+      <div className="row" style={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div className="row" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Link
+            href="/"
+            style={{ fontWeight: 800, textDecoration: "none", color: "inherit" }}
+            aria-label="חזור לדף הבית - יומן סופגניות"
+          >
+            🍩 יומן סופגניות
+          </Link>
           {session && (
             <>
-              <Link href="/feed" style={linkStyle("/feed")}>פיד</Link>
-              <Link href="/add" style={linkStyle("/add")}>הוספה</Link>
-              <Link href="/family" style={linkStyle("/family")}>משפחה</Link>
+              <Link
+                href="/feed"
+                style={linkStyle("/feed")}
+                aria-current={pathname === "/feed" ? "page" : undefined}
+                aria-label="עבור לדף הפיד"
+              >
+                פיד
+              </Link>
+              <Link
+                href="/add"
+                style={linkStyle("/add")}
+                aria-current={pathname === "/add" ? "page" : undefined}
+                aria-label="עבור לדף הוספת סופגנייה"
+              >
+                הוספה
+              </Link>
+              <Link
+                href="/family"
+                style={linkStyle("/family")}
+                aria-current={pathname === "/family" ? "page" : undefined}
+                aria-label="עבור לדף ניהול משפחה"
+              >
+                משפחה
+              </Link>
             </>
           )}
         </div>
@@ -34,12 +66,25 @@ export default function NavBar() {
         <div className="row" style={{ alignItems: "center" }}>
           <ThemeSwitcher />
           {session ? (
-            <button className="btnSecondary" onClick={logout} type="button">התנתקות</button>
+            <button
+              className="btnSecondary"
+              onClick={logout}
+              type="button"
+              aria-label="התנתק מהמערכת"
+            >
+              התנתקות
+            </button>
           ) : (
-            <Link className="btnSecondary" href="/login">כניסה</Link>
+            <Link
+              className="btnSecondary"
+              href="/login"
+              aria-label="עבור לדף התחברות"
+            >
+              כניסה
+            </Link>
           )}
         </div>
       </div>
-    </div>
+    </nav>
   );
 }

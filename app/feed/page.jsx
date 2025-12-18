@@ -79,73 +79,213 @@ export default function FeedPage() {
         <div className="card" style={{ marginTop: 14 }}>
           <div className="row" style={{ alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <h1 className="h1" style={{ marginBottom: 4 }}>פיד</h1>
-              <div className="small">בוחרים בין משפחתי לאישי.</div>
+              <h1 className="h1" style={{ marginBottom: 4 }}>פיד סופגניות 🍩</h1>
+              <div className="small">גלריה משותפת של כל הטעימות.</div>
             </div>
 
-            <button className="btn" type="button" onClick={() => router.push("/add")}>+ הוספה</button>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => router.push("/add")}
+              aria-label="הוסף סופגנייה חדשה"
+            >
+              + הוספה
+            </button>
           </div>
 
           <div className="hr" />
 
-          <div className="row" style={{ alignItems: "center", justifyContent: "space-between" }}>
+          <div className="row" style={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
             <div className="row">
-              <button className={tab === "family" ? "btn" : "btnSecondary"} type="button" onClick={() => setTab("family")}>
+              <button
+                className={tab === "family" ? "btn" : "btnSecondary"}
+                type="button"
+                onClick={() => setTab("family")}
+                aria-pressed={tab === "family"}
+                aria-label="הצג פיד משפחתי"
+              >
                 משפחה
               </button>
-              <button className={tab === "mine" ? "btn" : "btnSecondary"} type="button" onClick={() => setTab("mine")}>
+              <button
+                className={tab === "mine" ? "btn" : "btnSecondary"}
+                type="button"
+                onClick={() => setTab("mine")}
+                aria-pressed={tab === "mine"}
+                aria-label="הצג רשומות אישיות"
+              >
                 שלי
               </button>
             </div>
 
             {tab === "family" && (
               hasFamily ? (
-                <select className="select" style={{ maxWidth: 260 }} value={activeGroupId || ""} onChange={(e) => setActiveGroupId(e.target.value)}>
-                  {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                <select
+                  className="select"
+                  style={{ maxWidth: 260 }}
+                  value={activeGroupId || ""}
+                  onChange={(e) => setActiveGroupId(e.target.value)}
+                  aria-label="בחר משפחה להצגה"
+                >
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
                 </select>
               ) : (
-                <button className="btnSecondary" type="button" onClick={() => router.push("/family")}>אין משפחה — יצירה/הצטרפות</button>
+                <button
+                  className="btnSecondary"
+                  type="button"
+                  onClick={() => router.push("/family")}
+                  aria-label="אין משפחה, עבור ליצירה או הצטרפות"
+                >
+                  אין משפחה — יצירה/הצטרפות
+                </button>
               )
             )}
           </div>
 
-          {busy && <div className="hr" />}
-          {busy && <div className="small">טוען…</div>}
-
-          {error && <div className="hr" />}
-          {error && <div className="small" style={{ color: "var(--danger)" }}>{error}</div>}
-
-        {!busy && !entries.length && (
-          <>
-            <div className="hr" />
-            <div className="small">אין עדיין רשומות כאן. הוסיפי את הראשונה 🙂</div>
-          </>
-        )}
-
-        <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-          {entries.map((e) => (
-            <div key={e.id} className="card" style={{ boxShadow: "none" }}>
-              <div className="row" style={{ alignItems: "flex-start", justifyContent: "space-between" }}>
-                <div>
-                  <div className="row" style={{ alignItems: "center" }}>
-                    <div style={{ fontWeight: 900, fontSize: 18 }}>{e.place_name}</div>
-                    <span className="badge">{e.visibility === "group" ? "משותף" : "פרטי"}</span>
-                    <span className="badge">⭐ {e.rating}/10</span>
-                  </div>
-                  <div className="small">{DateFormatter.toMediumDateTime(e.date)}</div>
-                  <div style={{ marginTop: 6, fontWeight: 700 }}>{e.donut_name}{e.filling ? ` · ${e.filling}` : ""}</div>
-                  {e.price != null && <div className="small">מחיר: ₪{e.price}</div>}
-                  {e.notes && <div style={{ marginTop: 8 }}>{e.notes}</div>}
-                </div>
-
-                <button className="btnDanger" type="button" onClick={() => removeEntry(e.id)}>
-                  מחיקה
-                </button>
+          {busy && (
+            <>
+              <div className="hr" />
+              <div className="small" role="status" aria-live="polite">
+                טוען…
               </div>
-            </div>
-          ))}
+            </>
+          )}
+
+          {error && (
+            <>
+              <div className="hr" />
+              <div className="small" style={{ color: "var(--danger)" }} role="alert" aria-live="assertive">
+                {error}
+              </div>
+            </>
+          )}
+
+          {!busy && !entries.length && (
+            <>
+              <div className="hr" />
+              <div className="small">אין עדיין רשומות כאן. הוסיפי את הראשונה 🙂</div>
+            </>
+          )}
         </div>
-        </div>
+
+        {/* Pinterest-style Masonry Layout */}
+        {!busy && entries.length > 0 && (
+          <div
+            style={{
+              columnCount: "auto",
+              columnWidth: "280px",
+              columnGap: "14px",
+              marginTop: 14,
+            }}
+            role="feed"
+            aria-label="פיד סופגניות"
+          >
+            {entries.map((e) => (
+              <article
+                key={e.id}
+                className="card"
+                style={{
+                  breakInside: "avoid",
+                  marginBottom: 14,
+                  pageBreakInside: "avoid",
+                  display: "inline-block",
+                  width: "100%",
+                  overflow: "hidden",
+                }}
+                aria-labelledby={`entry-title-${e.id}`}
+              >
+                {/* Image */}
+                {e.photo_url && (
+                  <img
+                    src={e.photo_url}
+                    alt={`תמונה של ${e.donut_name} מ${e.place_name}`}
+                    style={{
+                      width: "100%",
+                      height: "auto",
+                      borderRadius: "12px 12px 0 0",
+                      margin: "-12px -12px 12px -12px",
+                      display: "block",
+                      objectFit: "cover",
+                    }}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                    }}
+                  />
+                )}
+
+                {/* Content */}
+                <div>
+                  <div className="row" style={{ alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                    <h2
+                      id={`entry-title-${e.id}`}
+                      style={{ fontWeight: 900, fontSize: 18, margin: 0 }}
+                    >
+                      {e.place_name}
+                    </h2>
+                    <span className="badge" aria-label={`נראות: ${e.visibility === "group" ? "משותף" : "פרטי"}`}>
+                      {e.visibility === "group" ? "משותף" : "פרטי"}
+                    </span>
+                    <span className="badge" aria-label={`דירוג: ${e.rating} מתוך 10`}>
+                      ⭐ {e.rating}/10
+                    </span>
+                  </div>
+
+                  <time
+                    className="small"
+                    dateTime={e.date}
+                    style={{ display: "block", marginTop: 4 }}
+                  >
+                    {DateFormatter.toMediumDateTime(e.date)}
+                  </time>
+
+                  <div style={{ marginTop: 8, fontWeight: 700 }}>
+                    {e.donut_name}
+                    {e.filling && ` · ${e.filling}`}
+                  </div>
+
+                  {e.price != null && (
+                    <div className="small" style={{ marginTop: 4 }}>
+                      מחיר: ₪{e.price}
+                    </div>
+                  )}
+
+                  {e.notes && (
+                    <p style={{ marginTop: 8, fontSize: 14, lineHeight: 1.5 }}>
+                      {e.notes}
+                    </p>
+                  )}
+
+                  {/* Actions */}
+                  <div className="hr" style={{ marginTop: 12 }} />
+                  <div className="row" style={{ gap: 8 }}>
+                    <button
+                      className="btnSecondary"
+                      type="button"
+                      onClick={() => router.push(`/edit/${e.id}`)}
+                      aria-label={`ערוך רשומה של ${e.donut_name}`}
+                      style={{ flex: 1, fontSize: 14, padding: "6px 12px" }}
+                    >
+                      ✏️ עריכה
+                    </button>
+                    <button
+                      className="btnDanger"
+                      type="button"
+                      onClick={() => removeEntry(e.id)}
+                      aria-label={`מחק רשומה של ${e.donut_name}`}
+                      style={{ flex: 1, fontSize: 14, padding: "6px 12px" }}
+                    >
+                      🗑️ מחיקה
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   );

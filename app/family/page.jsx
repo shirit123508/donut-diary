@@ -40,7 +40,8 @@ export default function FamilyPage() {
     [myGroups, activeGroupId]
   );
 
-  async function createGroup() {
+  async function createGroup(e) {
+    e?.preventDefault();
     if (!newName.trim()) return;
 
     await execute(async () => {
@@ -52,7 +53,8 @@ export default function FamilyPage() {
     });
   }
 
-  async function joinGroup() {
+  async function joinGroup(e) {
+    e?.preventDefault();
     if (!joinCode.trim()) return;
 
     await execute(async () => {
@@ -65,6 +67,8 @@ export default function FamilyPage() {
   }
 
   async function leaveGroup(groupId) {
+    if (!confirm("האם את/ה בטוח/ה שאת/ה רוצה לעזוב את המשפחה?")) return;
+
     await execute(async () => {
       await groupService.leaveGroup(groupId, userId);
       setSuccessMessage("יצאת מהמשפחה.");
@@ -78,92 +82,190 @@ export default function FamilyPage() {
       <div className="container">
         <NavBar />
 
-      <div className="row" style={{ marginTop: 14 }}>
-        <div className="card" style={{ flex: "1 1 420px" }}>
-          <h2 className="h2">המשפחה שלי</h2>
-          {!myGroups.length ? (
-            <p className="p">עדיין אין משפחה. אפשר ליצור או להצטרף עם קוד.</p>
-          ) : (
-            <div className="row" style={{ gap: 8 }}>
-              {myGroups.map((g) => (
-                <button
-                  key={g.id}
-                  type="button"
-                  className={g.id === activeGroupId ? "btn" : "btnSecondary"}
-                  onClick={() => setActiveGroupId(g.id)}
-                  style={{ padding: "8px 12px" }}
-                >
-                  {g.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="hr" />
-          <div className="grid2">
-            <div className="card" style={{ boxShadow: "none" }}>
-              <div className="h2">יצירת משפחה</div>
-              <label className="small">שם המשפחה</label>
-              <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="למשל: משפחת לוי" />
-              <div style={{ height: 10 }} />
-              <button className="btn" type="button" onClick={createGroup} disabled={busy || !newName.trim()}>
-                {busy ? "יוצר…" : "יצירה"}
-              </button>
-            </div>
-
-            <div className="card" style={{ boxShadow: "none" }}>
-              <div className="h2">הצטרפות עם קוד</div>
-              <label className="small">קוד קצר</label>
-              <input className="input" value={joinCode} onChange={(e) => setJoinCode(e.target.value)} placeholder="ABC123" />
-              <div style={{ height: 10 }} />
-              <button className="btn" type="button" onClick={joinGroup} disabled={busy || !joinCode.trim()}>
-                {busy ? "מצטרף…" : "הצטרפות"}
-              </button>
-            </div>
-          </div>
-
-          {(success || error) && <div className="hr" />}
-          {success && <div className="small">{success}</div>}
-          {error && <div className="small" style={{ color: "var(--danger)" }}>{error}</div>}
-        </div>
-
-        <div className="card" style={{ flex: "1 1 320px" }}>
-          <h2 className="h2">המשפחה הפעילה</h2>
-          {!activeGroup ? (
-            <p className="p">בחרי/צרי משפחה כדי לראות את הקוד ולשתף.</p>
-          ) : (
-            <>
-              <div className="row" style={{ alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 18 }}>{activeGroup.name}</div>
-                  <div className="small">קוד הצטרפות:</div>
-                  <div className="row" style={{ alignItems: "center" }}>
-                    <span className="badge" style={{ fontWeight: 800, letterSpacing: 2 }}>{activeGroup.join_code}</span>
-                    <button
-                      type="button"
-                      className="btnSecondary"
-                      onClick={() => navigator.clipboard.writeText(activeGroup.join_code)}
-                    >
-                      העתקה
-                    </button>
-                  </div>
-                </div>
-                <button className="btnDanger" type="button" onClick={() => leaveGroup(activeGroup.id)} disabled={busy}>
-                  יציאה
-                </button>
+        <div className="row" style={{ marginTop: 14, alignItems: "flex-start" }}>
+          <section
+            className="card"
+            style={{ flex: "1 1 420px" }}
+            aria-labelledby="my-families-heading"
+          >
+            <h1 id="my-families-heading" className="h2">
+              המשפחה שלי 👨‍👩‍👧‍👦
+            </h1>
+            {!myGroups.length ? (
+              <p className="p">עדיין אין משפחה. אפשר ליצור או להצטרף עם קוד.</p>
+            ) : (
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }} role="group" aria-label="רשימת המשפחות שלי">
+                {myGroups.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={g.id === activeGroupId ? "btn" : "btnSecondary"}
+                    onClick={() => setActiveGroupId(g.id)}
+                    style={{ padding: "8px 12px" }}
+                    aria-pressed={g.id === activeGroupId}
+                    aria-label={`בחר משפחה: ${g.name}`}
+                  >
+                    {g.name}
+                  </button>
+                ))}
               </div>
+            )}
 
-              <div className="hr" />
-              <p className="p">
-                עכשיו אפשר להוסיף טעימות כ״שיתופי״ כדי שכל בני המשפחה יראו בפיד המשפחתי.
-              </p>
-              <button className="btn" type="button" onClick={() => router.push("/add")}>
-                הוספת סופגנייה
-              </button>
-            </>
-          )}
+            <div className="hr" />
+            <div className="grid2">
+              {/* Create Group Form */}
+              <form
+                onSubmit={createGroup}
+                className="card"
+                style={{ boxShadow: "none" }}
+                aria-labelledby="create-group-heading"
+              >
+                <h2 id="create-group-heading" className="h2">
+                  יצירת משפחה
+                </h2>
+                <label className="small" htmlFor="new-group-name">
+                  שם המשפחה
+                </label>
+                <input
+                  id="new-group-name"
+                  className="input"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="למשל: משפחת לוי"
+                  aria-required="true"
+                  required
+                />
+                <div style={{ height: 10 }} />
+                <button
+                  className="btn"
+                  type="submit"
+                  disabled={busy || !newName.trim()}
+                  aria-busy={busy}
+                >
+                  {busy ? "יוצר…" : "יצירה"}
+                </button>
+              </form>
+
+              {/* Join Group Form */}
+              <form
+                onSubmit={joinGroup}
+                className="card"
+                style={{ boxShadow: "none" }}
+                aria-labelledby="join-group-heading"
+              >
+                <h2 id="join-group-heading" className="h2">
+                  הצטרפות עם קוד
+                </h2>
+                <label className="small" htmlFor="join-code-input">
+                  קוד קצר
+                </label>
+                <input
+                  id="join-code-input"
+                  className="input"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  placeholder="ABC123"
+                  maxLength={6}
+                  aria-required="true"
+                  required
+                  style={{ textTransform: "uppercase", letterSpacing: "2px" }}
+                />
+                <div style={{ height: 10 }} />
+                <button
+                  className="btn"
+                  type="submit"
+                  disabled={busy || !joinCode.trim()}
+                  aria-busy={busy}
+                >
+                  {busy ? "מצטרף…" : "הצטרפות"}
+                </button>
+              </form>
+            </div>
+
+            {(success || error) && <div className="hr" />}
+            {success && (
+              <div className="small" style={{ color: "var(--success, green)" }} role="status" aria-live="polite">
+                ✓ {success}
+              </div>
+            )}
+            {error && (
+              <div className="small" style={{ color: "var(--danger)" }} role="alert" aria-live="assertive">
+                ✗ {error}
+              </div>
+            )}
+          </section>
+
+          {/* Active Group Info */}
+          <section
+            className="card"
+            style={{ flex: "1 1 320px" }}
+            aria-labelledby="active-group-heading"
+          >
+            <h2 id="active-group-heading" className="h2">
+              המשפחה הפעילה
+            </h2>
+            {!activeGroup ? (
+              <p className="p">בחרי/צרי משפחה כדי לראות את הקוד ולשתף.</p>
+            ) : (
+              <>
+                <div className="row" style={{ alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 18 }} id={`group-name-${activeGroup.id}`}>
+                      {activeGroup.name}
+                    </div>
+                    <div className="small" style={{ marginTop: 8 }}>
+                      קוד הצטרפות:
+                    </div>
+                    <div className="row" style={{ alignItems: "center", gap: 8, marginTop: 4 }}>
+                      <span
+                        className="badge"
+                        style={{ fontWeight: 800, letterSpacing: 2, fontSize: 16 }}
+                        aria-label={`קוד הצטרפות: ${activeGroup.join_code}`}
+                      >
+                        {activeGroup.join_code}
+                      </span>
+                      <button
+                        type="button"
+                        className="btnSecondary"
+                        onClick={() => {
+                          navigator.clipboard.writeText(activeGroup.join_code);
+                          alert("הקוד הועתק ללוח!");
+                        }}
+                        aria-label="העתק קוד הצטרפות ללוח"
+                        style={{ fontSize: 14, padding: "6px 12px" }}
+                      >
+                        📋 העתקה
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    className="btnDanger"
+                    type="button"
+                    onClick={() => leaveGroup(activeGroup.id)}
+                    disabled={busy}
+                    aria-label={`עזוב את משפחת ${activeGroup.name}`}
+                    aria-busy={busy}
+                  >
+                    יציאה
+                  </button>
+                </div>
+
+                <div className="hr" />
+                <p className="p">
+                  עכשיו אפשר להוסיף טעימות כ״שיתופי״ כדי שכל בני המשפחה יראו בפיד המשפחתי.
+                </p>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => router.push("/add")}
+                  aria-label="הוסף סופגנייה חדשה"
+                >
+                  + הוספת סופגנייה
+                </button>
+              </>
+            )}
+          </section>
         </div>
-      </div>
       </div>
     </ProtectedRoute>
   );
