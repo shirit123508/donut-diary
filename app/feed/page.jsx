@@ -259,15 +259,15 @@ export default function FeedPage() {
                     </p>
                   )}
 
-                  {/* Actions */}
+                  {/* Actions - כפתורים גדולים יותר */}
                   <div className="hr" style={{ marginTop: 12 }} />
                   <div className="row" style={{ gap: 8 }}>
                     <button
-                      className="btnSecondary"
+                      className="btn"
                       type="button"
                       onClick={() => router.push(`/edit/${e.id}`)}
                       aria-label={`ערוך רשומה של ${e.donut_name}`}
-                      style={{ flex: 1, fontSize: 14, padding: "6px 12px" }}
+                      style={{ flex: 1, fontSize: 13, padding: "8px 10px" }}
                     >
                       ✏️ עריכה
                     </button>
@@ -276,7 +276,7 @@ export default function FeedPage() {
                       type="button"
                       onClick={() => removeEntry(e.id)}
                       aria-label={`מחק רשומה של ${e.donut_name}`}
-                      style={{ flex: 1, fontSize: 14, padding: "6px 12px" }}
+                      style={{ flex: 1, fontSize: 13, padding: "8px 10px" }}
                     >
                       🗑️ מחיקה
                     </button>
