@@ -16,3 +16,7 @@ export {
 export { DateFormatter } from "./DateFormatter";
 
 export { ValidationHelper } from "./ValidationHelper";
+
+export { StorageHelper } from "./StorageHelper";
+
+export { UrlHelper } from "./UrlHelper";
